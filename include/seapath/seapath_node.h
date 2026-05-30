@@ -4,56 +4,46 @@
 #include "defs.h"
 #include "types.h"
 
-#include <stdio.h>
-#include <unistd.h>
-#include <stdlib.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <netinet/ip.h>
-#include <netdb.h>
 #include <arpa/inet.h>
+#include <netinet/in.h>
 #include <stdint.h>
-#include <string.h>
-#include <iostream>
-#include <ros/ros.h>
-#include <sensor_msgs/NavSatFix.h>
-#include <sensor_msgs/Imu.h>
-#include <geometry_msgs/TwistStamped.h>
-#include <nav_msgs/Odometry.h>
-#include <tf/tf.h>
+
+#include <rclcpp/rclcpp.hpp>
+#include <io_interfaces/msg/raw_packet.hpp>
+#include <sensor_msgs/msg/nav_sat_fix.hpp>
+#include <sensor_msgs/msg/imu.hpp>
+#include <geometry_msgs/msg/twist_stamped.hpp>
+#include <nav_msgs/msg/odometry.hpp>
+#include <tf2/LinearMath/Quaternion.h>
 
 NS_HEAD
+
 #define BUFSIZE 44
 
-class SeapathNode
+class SeapathNode : public rclcpp::Node
 {
 public:
-  SeapathNode();
-
-  void publishNavsat(Seapath23_raw_t* raw);
-  void publishOdom(Seapath23_raw_t* raw);
-  void publishImu(Seapath23_raw_t* raw);
-  void publishTwist(Seapath23_raw_t* raw);
-
-  void spinOnce();
-  void spin();
+    SeapathNode();
 
 private:
-  size_t recvlen;
-  uint16_t crc_calc;
-  int fd;
-  struct sockaddr_in remaddr;
-  ros::NodeHandlePtr nh_;
-  socklen_t addrlen;
-  uint8_t buf[BUFSIZE];
-  struct{
-    ros::Publisher navsat;
-    ros::Publisher imu;
-    ros::Publisher twist;
-    ros::Publisher odom;
-  } pub_;
+    void onPacket(const io_interfaces::msg::RawPacket::SharedPtr msg);
 
-  std::string frame_id_ = "imu";
+    void publishNavsat(const Seapath23_raw_t* raw);
+    void publishOdom(const Seapath23_raw_t* raw);
+    void publishImu(const Seapath23_raw_t* raw);
+    void publishTwist(const Seapath23_raw_t* raw);
+
+    rclcpp::Subscription<io_interfaces::msg::RawPacket>::SharedPtr sub_;
+
+    struct {
+        rclcpp::Publisher<sensor_msgs::msg::NavSatFix>::SharedPtr navsat;
+        rclcpp::Publisher<sensor_msgs::msg::Imu>::SharedPtr imu;
+        rclcpp::Publisher<geometry_msgs::msg::TwistStamped>::SharedPtr twist;
+        rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odom;
+    } pub_;
+
+    std::string frame_id_ = "imu";
+    uint64_t    crc_errors_ = 0;
 };
 
 NS_FOOT
