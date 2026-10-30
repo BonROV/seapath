@@ -46,6 +46,10 @@ foreach(DEPEND ${ROS_DEPENDS} ${EXTERNAL_DEPENDS})
   find_package(${DEPEND} REQUIRED)
 endforeach(DEPEND)
 
+foreach(DEPEND ${ROS_DEPENDS})
+  list(APPEND ROS_DEPENDS_TARGETS ${${DEPEND}_TARGETS})
+endforeach(DEPEND)
+
 
 ################
 ## Find files ##
@@ -79,7 +83,7 @@ foreach(NODE_FILE ${NODES})
   message("  - " ${NODE_NAME})
   list(APPEND EXECUTABLES ${NODE_NAME})
   add_executable(${NODE_NAME} ${NODE_FILE} ${HDRS} ${SRCS})
-  ament_target_dependencies(${NODE_NAME} ${ROS_DEPENDS} ${EXTERNAL_DEPENDS_LIB})
+  target_link_libraries(${NODE_NAME} ${ROS_DEPENDS_TARGETS} ${EXTERNAL_DEPENDS_LIB})
   target_include_directories(${NODE_NAME} PRIVATE "include/${PROJECT_NAME}/")
 endforeach(NODE_FILE)
 
